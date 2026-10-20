@@ -6,6 +6,8 @@ const seconds = document.getElementById("seconds");
 const laps = document.getElementById("laps");
 const lsi = localStorage.getItem("stopw_last_time");
 let stopwatch;
+let elapsed = 0; // ms accumulated before the current run
+let startTime = 0; // timestamp of the current run
 
 // Check local storage
 if (lsi !== null) {
@@ -20,26 +22,30 @@ if (lsi !== null) {
     });
 }
 
+// Add a leading zero
+function pad(n) {
+    return String(n).padStart(2, "0");
+}
+
+// Total elapsed ms, including the current run
+function currentElapsed() {
+    if (btnToggle.innerHTML === "Pause") {
+        return elapsed + (Date.now() - startTime);
+    }
+    return elapsed;
+}
+
+// Show the time on the page
+function render(ms) {
+    hours.innerHTML = pad(Math.floor(ms / 3600000));
+    minutes.innerHTML = pad(Math.floor(ms / 60000) % 60);
+    seconds.innerHTML = pad(Math.floor(ms / 1000) % 60);
+}
+
 // Create a lap (list item)
 function createLaps() {
-    let s = Number(seconds.innerHTML);
-    let m = Number(minutes.innerHTML);
-    let h = Number(hours.innerHTML);
     const lap = document.createElement("li");
-
-    if (h < 10) {
-        h = "0" + h;
-    }
-
-    if (m < 10) {
-        m = "0" + m;
-    }
-
-    if (s < 10) {
-        s = "0" + s;
-    }
-
-    const timeAtPause = h + ":" + m + ":" + s;
+    const timeAtPause = hours.innerHTML + ":" + minutes.innerHTML + ":" + seconds.innerHTML;
     lap.innerHTML = timeAtPause;
 
     laps.appendChild(lap);
@@ -50,53 +56,22 @@ function createLaps() {
 btnToggle.addEventListener("click", () => {
     if (btnToggle.innerHTML === "Start") {
         btnToggle.innerHTML = "Pause";
+        startTime = Date.now();
 
+        // Only redraws; the time itself comes from Date.now(),
+        // so delayed or throttled ticks don't cause drift
         stopwatch = setInterval(() => {
-            let s = Number(seconds.innerHTML);
-            let m = Number(minutes.innerHTML);
-            let h = Number(hours.innerHTML);
-
-            // At 1000 ms add 1 second
-            s++;
-            if (s < 10) {
-                seconds.innerHTML = "0" + s;
-            } else if (s === 60) {
-                seconds.innerHTML = "00";
-            } else {
-                seconds.innerHTML = s;
-            }
-
-            // At 60 seconds add 1 minute
-            if (s === 60) {
-                m++;
-                if (m < 10) {
-                    minutes.innerHTML = "0" + m;
-                } else if (m === 60) {
-                    minutes.innerHTML = "00";
-                } else {
-                    minutes.innerHTML = m;
-                }
-            }
-
-            // At 60 minutes add 1 hour
-            if (m === 60) {
-                h++;
-                if (h < 10) {
-                    hours.innerHTML = "0" + h;
-                } else if (m === 60) {
-                    hours.innerHTML = "00";
-                } else {
-                    hours.innerHTML = h;
-                }
-            }
-        }, 1000);
+            render(currentElapsed());
+        }, 200);
 
         return;
     }
 
     if (btnToggle.innerHTML === "Pause") {
+        elapsed = currentElapsed();
         clearInterval(stopwatch);
         btnToggle.innerHTML = "Start";
+        render(elapsed);
         createLaps();
         return;
     }
@@ -105,9 +80,8 @@ btnToggle.addEventListener("click", () => {
 // When clicking Reset button
 btnReset.addEventListener("click", () => {
     clearInterval(stopwatch);
-    seconds.innerHTML = "00";
-    minutes.innerHTML = "00";
-    hours.innerHTML = "00";
+    elapsed = 0;
+    render(0);
 
     if (btnToggle.innerHTML === "Pause") {
         btnToggle.innerHTML = "Start";
