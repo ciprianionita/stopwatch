@@ -40,6 +40,13 @@ function render(ms) {
     hours.innerHTML = pad(Math.floor(ms / 3600000));
     minutes.innerHTML = pad(Math.floor(ms / 60000) % 60);
     seconds.innerHTML = pad(Math.floor(ms / 1000) % 60);
+
+    // Show the time in the tab title too, plain title when reset
+    if (ms === 0) {
+        document.title = "Stopwatch";
+    } else {
+        document.title = hours.innerHTML + ":" + minutes.innerHTML + ":" + seconds.innerHTML + " - Stopwatch";
+    }
 }
 
 // Create a lap (list item)
